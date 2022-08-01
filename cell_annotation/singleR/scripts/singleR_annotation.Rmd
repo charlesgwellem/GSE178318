@@ -126,4 +126,12 @@ FeaturePlot(seurat, features = "CLDN4", order = T) +
 # For now cells of interest are the epithelial cells which I can clearly identify
 # I will progressively review the identities of the other cell types, as proposed by the singleR algorithm
 
+# identifying cluster of epithelial cells
+DimPlot(seurat, group.by = "integrated_snn_res.0.05", label = T)
+
+# assess number of cells in the epithelial cluster
+table(seurat$integrated_snn_res.0.05) 
+
+# cluster 9 at integrated_snn_res.0.05 consists of the epithelial cells 
+# cluster 9 has 7905 cells.
 ```
