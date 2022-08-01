@@ -3,9 +3,108 @@ title: "singleR_annotation"
 author: "Charles"
 date: '2022-07-29'
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
+## Description
+
+I want to automatically annotate the cells of the seurat object from GSE178318, using [SingleR](https://bioconductor.org/packages/release/bioc/vignettes/SingleR/inst/doc/SingleR.html).
+
+## Set up
+
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
+## Load the libraries
+
+```{r libraries}
+library(Seurat)
+library(SingleR)
+library(celldex)
+library(randomcoloR)
+library(ggplot2)
+library(cowplot)
+library(grid)
+library(gridExtra) 
+library(ggpubr)
+```
+
+## load the data set and run SingleR
+
+```{r data_loaded}
+# create path
+path_to_obj <- "/mnt/DATA/Charles/External collaborations/DFKZ/GSE178318/QC_clustering_DEA/objects/integrated_and_clustered.rds"
+
+# read in the data
+seurat <- readRDS(path_to_obj)
+seurat
+
+# get sct normalised counts
+sct_seurat <- GetAssayData(seurat,
+                           assay = "SCT",
+                           slot = "data")
+
+DimPlot(seurat)
+
+hpca.se <-celldex::HumanPrimaryCellAtlasData()
+hpca.se
+
+# perform the annotation
+pred.hesc <- SingleR(test = sct_seurat, ref = hpca.se, assay.type.test=1,
+    labels = hpca.se$label.main)
+
+# fit the predictions
+all(rownames(pred.hesc) == colnames(sct_seurat)) #T
+
+
+# fit predictions
+seurat$singleR_humanAtlasMain_1 <- pred.hesc$pruned.labels
+
+# get distinct colours
+set.seed(123)
+colours <- distinctColorPalette(200)
+
+# visualise without legend
+DimPlot(seurat, group.by = "singleR_humanAtlasMain_1",
+        cols = colours) + NoLegend()
+ggsave(filename=paste0("figures", "/", "no_legend_umap_cell_types",
+                       ".pdf"), width = 5, 
+       height = 5, units = 'in', dpi = 300)
+
+# get_legend
+the_ggplot <- DimPlot(seurat, group.by = "singleR_humanAtlasMain_1",
+                                    cols = colours) 
+the_legend <- get_legend(the_ggplot)
+
+as_ggplot(the_legend)
+ggsave(filename=paste0("figures", "/", "legend_umap_cell_types",
+                       ".pdf"), width = 5, 
+       height = 5, units = 'in', dpi = 300)
+```
+
+## Perform differential expressed genes analysis
+
+```{r DEA}
+# create path
+path_to_obj <- "/mnt/DATA/Charles/External collaborations/DFKZ/GSE178318/QC_clustering_DEA/objects/integrated_and_clustered.rds"
+
+# read in the data
+seurat <- readRDS(path_to_obj)
+seurat
+
+# set appropriate ident
+Idents(seurat) <- seurat$singleR_humanAtlasMain_1
+
+markers <- FindAllMarkers(seurat,
+                          only.pos = T,
+                          assay = "RNA",
+                          slot = "data")
+
+write.xlsx(markers,
+           "results/cell_markers.xlsx",
+           row.names = TRUE)
+
+
+```
