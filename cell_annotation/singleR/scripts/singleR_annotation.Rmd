@@ -119,10 +119,19 @@ top_markers <- markers %>%
                     top_n(5, avg_log2FC)
 
 # visualise the expression of certain markers
-FeaturePlot(seurat, features = "CLDN4", order = T) +
+FeaturePlot(seurat, features = "EPCAM", order = T, raster = FALSE) +
+   theme(aspect.ratio = 1)
+
+FeaturePlot(seurat, features = c("KRT8"), 
+            order = T, raster = FALSE) +
   theme(aspect.ratio = 1)
 
-# all cell types are hard to visua´lise in a single heatmap
+
+FeaturePlot(seurat, features = c("KRT18"), 
+            order = T, raster = FALSE) +
+  theme(aspect.ratio = 1)
+
+# all cell types are hard to visualise in a single heatmap
 # For now cells of interest are the epithelial cells which I can clearly identify
 # I will progressively review the identities of the other cell types, as proposed by the singleR algorithm
 
@@ -156,9 +165,11 @@ seurat$treatment_status[!seurat$treatment_status%in%"PC"] <- "no_PC"
 
 table(seurat$treatment_status)
 
+# set raster to false
 DimPlot(seurat,
         group.by = "treatment_status", 
-        split.by = "group")
+        split.by = "group",
+        raster = FALSE)
 
 saveRDS(seurat, 
         path_to_obj)
