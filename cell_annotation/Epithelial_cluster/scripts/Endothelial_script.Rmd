@@ -1,0 +1,53 @@
+---
+title: "Endothelial_script"
+author: "Charles"
+date: "2 8 2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Description
+
+To subcluster the endothelial cluster and perform necessary visualisations.
+
+## Set up
+
+```{r setup, include=FALSE}
+.libPaths("V:/GROUPS/AG Ramming/Fellows/Charles/R-4.1.1/library")
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Load libraries
+
+```{r load_libraries}
+library(Seurat)
+library(SeuratObject)
+library(SeuratWrappers)
+library(SeuratDisk)
+library(ggplot2)
+```
+
+## Load the dataset
+
+```{r data_loading}
+path <- "V:/GROUPS/AG Ramming/Fellows/Charles/Analyses/External collaborations/DFKZ/GSE178318/GSE178318/cell_annotation/singleR/objects/epithelial_cluster.rds"
+
+epith <- readRDS(path)
+DimPlot(epith)
+```
+
+## Subcluster the epithelial cells
+
+```{r subclustering}
+DefaultAssay(epith) <- "integrated"
+epith <- RunPCA(epith, npcs = 50) 
+epith <- RunUMAP(epith, reduction = "pca", dims = 1:30)
+epith <- FindNeighbors(epith, reduction = "umap", dims = 1:2)
+epith <- FindClusters(epith, resolution = seq(0.05, 2, 0.05))
+DimPlot(epith)
+
+DefaultAssay(epith) <- "RNA"
+epith <- NormalizeData(epith)
+DimPlot(epith)
+```
