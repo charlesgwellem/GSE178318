@@ -51,3 +51,23 @@ DefaultAssay(epith) <- "RNA"
 epith <- NormalizeData(epith)
 DimPlot(epith)
 ```
+
+## Visualisations
+
+```{r visualistation}
+DimPlot(epith, group.by = "group") + 
+  theme(aspect.ratio = 1)
+ggsave("figures/umap_epith_per_group.pdf")
+
+
+DimPlot(epith, label = TRUE,
+        group.by = "integrated_snn_res.0.05") + 
+  theme(aspect.ratio = 1)
+ggsave("figures/umap_epith_low_res_clust.pdf")
+
+DimPlot(epith, label = TRUE,split.by = "group",
+        group.by = "integrated_snn_res.0.05") + 
+  theme(aspect.ratio = 1) + NoLegend()
+ggsave("figures/umap_epith_low_res_clust_split.pdf",
+       height = 6, width = 6, dpi = 400)
+```
