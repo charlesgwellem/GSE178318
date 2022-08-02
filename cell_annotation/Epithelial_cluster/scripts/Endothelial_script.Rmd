@@ -27,7 +27,9 @@ library(SeuratWrappers)
 library(SeuratDisk)
 library(ggplot2)
 library(dplyr)
+library(tidyr)
 library(openxlsx)
+library(enrichR)
 ```
 
 ## Load the dataset
@@ -72,6 +74,26 @@ DimPlot(epith, label = TRUE,split.by = "group",
   theme(aspect.ratio = 1) + NoLegend()
 ggsave("figures/umap_epith_low_res_clust_split.pdf",
        height = 6, width = 6, dpi = 400)
+
+lymphotoxins <- c("LTBR","TNFRSF1A","LTA", "LTB", "TNFSF14")
+
+VlnPlot(epith,
+        lymphotoxins[1:2],split.by = "treatment_status",
+        group.by = "group", pt.size = .01)
+ggsave("figures/Vlnplot_lymphotoxins_per_group_1.pdf")
+
+VlnPlot(epith,
+        lymphotoxins[3:5],
+        group.by = "group", pt.size = .01)
+ggsave("figures/Vlnplot_lymphotoxins_per_group_2.pdf")
+
+for(l in lymphotoxins){
+  VlnPlot(epith,
+          l, split.by = "treatment_status",
+          group.by = "group", pt.size = .01)
+ggsave(paste0("figures/Vlnplot_",l, "_pc_vs_nopc.pdf"))
+  
+}
 ```
 
 ## Marker genes of various tissue of origin
@@ -96,6 +118,39 @@ write.xlsx(epith_no_pbmc_markers,
            "results/epith_no_pbmc_markers.xlsx",
            rownames = TRUE)
 
+# enrichment analysis
+# for LM
+sig_epith_no_pbmc_markers <- subset(epith_no_pbmc_markers,
+                                    p_val_adj < 0.05)
+
+LM <- subset(sig_epith_no_pbmc_markers,
+              cluster == "LM")
+
+# get database
+dbs <- listEnrichrDbs()
+tail(dbs, 100)
+dbs_keep <- "MSigDB_Hallmark_2020"
+LM_pways <- enrichr(LM$gene,
+                     dbs_keep)
+plotEnrich(LM_pways[[1]])
+
+
+# for LM
+sig_epith_no_pbmc_markers <- subset(epith_no_pbmc_markers,
+                                    p_val_adj < 0.05)
+
+LM <- subset(sig_epith_no_pbmc_markers,
+              cluster == "LM")
+
+# get database
+dbs <- listEnrichrDbs()
+tail(dbs, 100)
+dbs_keep <- "MSigDB_Hallmark_2020"
+LM_pways <- enrichr(LM$gene,
+                     dbs_keep)
+plotEnrich(LM_pways[[1]])
+
+
 top_markers <- epith_no_pbmc_markers %>%
                     group_by(cluster) %>%
                     top_n(10, avg_log2FC)
@@ -106,4 +161,28 @@ epith_no_pbmc <- ScaleData(epith_no_pbmc,
 DoHeatmap(epith_no_pbmc, features = top_markers$gene)
 ggsave("figures/heatmap_epith_tissue_markers.pdf",
        height = 6, width = 6, dpi = 400)
+```
+
+## Find markers per cluster
+
+```{r cluster_markers}
+Idents(epith) <- epith$integrated_snn_res.0.05
+
+epith_cluster_markers <- FindAllMarkers(epith,
+                                        assay = "RNA",
+                                        slot = "data",
+                                        only.pos = T)
+
+write.xlsx(epith_cluster_markers,
+           "results/epith_cluster_markers.xlsx",
+           rowNames = TRUE)
+
+the_top <- epith_cluster_markers %>%
+                    group_by(cluster) %>%
+                    top_n(10, avg_log2FC)
+
+epith <- ScaleData(epith, features = rownames(epith))
+
+DoHeatmap(epith,
+          features = the_top$gene)
 ```
