@@ -135,3 +135,31 @@ table(seurat$integrated_snn_res.0.05)
 # cluster 9 at integrated_snn_res.0.05 consists of the epithelial cells 
 # cluster 9 has 7905 cells.
 ```
+
+## Identify patients treated with PC or not
+
+```{r treatment_status}
+# create path
+path_to_obj <- "/mnt/DATA/Charles/External collaborations/DFKZ/GSE178318/QC_clustering_DEA/objects/integrated_and_clustered.rds"
+
+# read in the data
+seurat <- readRDS(path_to_obj)
+seurat
+
+table(seurat$subjectID)
+
+# assign treatment groups
+seurat$treatment_status <- seurat$subjectID
+
+seurat$treatment_status[seurat$treatment_status%in%c("COL15", "COL17", "COL18")] <- "PC"
+seurat$treatment_status[!seurat$treatment_status%in%"PC"] <- "no_PC"
+
+table(seurat$treatment_status)
+
+DimPlot(seurat,
+        group.by = "treatment_status", 
+        split.by = "group")
+
+saveRDS(seurat, 
+        path_to_obj)
+```
