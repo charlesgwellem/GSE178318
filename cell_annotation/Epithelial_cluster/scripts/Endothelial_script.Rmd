@@ -26,6 +26,8 @@ library(SeuratObject)
 library(SeuratWrappers)
 library(SeuratDisk)
 library(ggplot2)
+library(dplyr)
+library(openxlsx)
 ```
 
 ## Load the dataset
@@ -69,5 +71,39 @@ DimPlot(epith, label = TRUE,split.by = "group",
         group.by = "integrated_snn_res.0.05") + 
   theme(aspect.ratio = 1) + NoLegend()
 ggsave("figures/umap_epith_low_res_clust_split.pdf",
+       height = 6, width = 6, dpi = 400)
+```
+
+## Marker genes of various tissue of origin
+
+```{r tissue_markers}
+# Epithelial cells are meaningless in PBMCs
+# so I remove those that are present in PBMCs
+
+Idents(epith) <- epith$group
+
+epith_no_pbmc <- subset(epith,
+                        idents = "PBMC",
+                        invert = TRUE)
+
+epith_no_pbmc_markers <- FindAllMarkers(epith_no_pbmc,
+                                        assay = "RNA",
+                                        slot = "data",
+                                        only.pos = TRUE)
+
+# write out the epith_no_pbmc_markers results
+write.xlsx(epith_no_pbmc_markers,
+           "results/epith_no_pbmc_markers.xlsx",
+           rownames = TRUE)
+
+top_markers <- epith_no_pbmc_markers %>%
+                    group_by(cluster) %>%
+                    top_n(10, avg_log2FC)
+
+epith_no_pbmc <- ScaleData(epith_no_pbmc, 
+                           features = rownames(epith_no_pbmc))
+
+DoHeatmap(epith_no_pbmc, features = top_markers$gene)
+ggsave("figures/heatmap_epith_tissue_markers.pdf",
        height = 6, width = 6, dpi = 400)
 ```
