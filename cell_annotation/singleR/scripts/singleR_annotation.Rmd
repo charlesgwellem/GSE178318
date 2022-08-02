@@ -171,6 +171,25 @@ DimPlot(seurat,
         split.by = "group",
         raster = FALSE)
 
+# umap of treatment status
+DimPlot(seurat,
+        group.by = "treatment_status", 
+        raster = FALSE) + 
+  theme(aspect.ratio = 1)
+
+# umap of groups
+DimPlot(seurat,
+        group.by = "group", 
+        raster = FALSE) + 
+  theme(aspect.ratio = 1)
+
+# umap of groups
+DimPlot(seurat,
+        group.by = "group", 
+        split.by = "group",
+        raster = FALSE) + 
+  theme(aspect.ratio = 1)
+
 saveRDS(seurat, 
         path_to_obj)
 ```
