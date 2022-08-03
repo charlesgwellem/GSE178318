@@ -111,7 +111,9 @@ epith_no_pbmc <- subset(epith,
 epith_no_pbmc_markers <- FindAllMarkers(epith_no_pbmc,
                                         assay = "RNA",
                                         slot = "data",
-                                        only.pos = TRUE)
+                                        only.pos = TRUE,
+                                        logfc.threshold = 0,
+                                        min.pct = 0)
 
 # write out the epith_no_pbmc_markers results
 write.xlsx(epith_no_pbmc_markers,
@@ -119,6 +121,26 @@ write.xlsx(epith_no_pbmc_markers,
            rownames = TRUE)
 
 # enrichment analysis
+# for CRC
+sig_epith_no_pbmc_markers <- subset(epith_no_pbmc_markers,
+                                    p_val_adj < 0.05)
+
+CRC <- subset(sig_epith_no_pbmc_markers,
+              cluster == "CRC")
+
+# get database
+dbs <- listEnrichrDbs()
+tail(dbs, 100)
+dbs_keep <- "MSigDB_HalCRCark_2020"
+CRC_pways <- enrichr(CRC$gene,
+                     dbs_keep)
+plotEnrich(CRC_pways[[1]])
+
+write.xlsx(CRC_pways,
+           "results/CRC_msigdb2020.xlsx",
+           rowNames = TRUE)
+
+
 # for LM
 sig_epith_no_pbmc_markers <- subset(epith_no_pbmc_markers,
                                     p_val_adj < 0.05)
@@ -134,22 +156,9 @@ LM_pways <- enrichr(LM$gene,
                      dbs_keep)
 plotEnrich(LM_pways[[1]])
 
-
-# for LM
-sig_epith_no_pbmc_markers <- subset(epith_no_pbmc_markers,
-                                    p_val_adj < 0.05)
-
-LM <- subset(sig_epith_no_pbmc_markers,
-              cluster == "LM")
-
-# get database
-dbs <- listEnrichrDbs()
-tail(dbs, 100)
-dbs_keep <- "MSigDB_Hallmark_2020"
-LM_pways <- enrichr(LM$gene,
-                     dbs_keep)
-plotEnrich(LM_pways[[1]])
-
+write.xlsx(LM_pways,
+           "results/LM_msigdb2020.xlsx",
+           rowNames = TRUE)
 
 top_markers <- epith_no_pbmc_markers %>%
                     group_by(cluster) %>%
@@ -161,6 +170,53 @@ epith_no_pbmc <- ScaleData(epith_no_pbmc,
 DoHeatmap(epith_no_pbmc, features = top_markers$gene)
 ggsave("figures/heatmap_epith_tissue_markers.pdf",
        height = 6, width = 6, dpi = 400)
+
+# obtain degs between PC and no_PC conditions for 
+# each tissue
+clusters_oi <- unique(epith_no_pbmc$group)
+conditions <- "treatment_status"
+conditions_oi <- c("no_PC", "PC")
+ident_oi <- "group"
+
+multi_DEG_analysis <- function(seurat, ident_oi,
+                               conditions,
+                               clusters_oi,
+                               conditions_oi){
+  
+                        Idents(seurat) <- ident_oi
+                              
+                        for (cluster in clusters_oi) {
+                                
+                            sub_clust <- subset(seurat,
+                                                    idents = cluster)
+                                
+                            Idents(sub_clust) <- conditions
+                                
+                            degs <- FindMarkers(sub_clust,
+                                                assay = "RNA",
+                                                slot = "data",
+                                                ident.1 = 
+                                                conditions_oi[1],
+                                                min.pct = 0,
+                                                logfc.threshold = 0)
+                                write.xlsx(degs,
+                                           paste0("results/",cluster,
+                                                  "_degs_",
+                                                  conditions_oi[1],
+                                                  "_vs_",
+                                                  conditions_oi[2],
+                                                  ".xlsx"),
+                                           rowNames = TRUE)
+                                
+                              }
+                              
+} 
+
+multi_DEG_analysis(seurat = epith_no_pbmc, 
+                   ident_oi = ident_oi,
+                   conditions_oi = conditions_oi,
+                   conditions = conditions,
+                   clusters_oi = clusters_oi)
 ```
 
 ## Find markers per cluster
